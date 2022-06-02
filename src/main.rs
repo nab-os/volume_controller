@@ -7,12 +7,22 @@ use libpulse_binding::volume::Volume;
 use pulsectl::controllers::DeviceControl;
 use pulsectl::controllers::SinkController;
 
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Signaling server address
+    #[clap(long)]
+    event_path: String,
+}
+
 fn main() {
+    let args = Args::parse();
+
     let mut handler = SinkController::create().unwrap();
 
-    let mut d = Device::open("/dev/input/event29").unwrap();
-    println!("{}", d);
-    println!("Events:");
+    let mut d = Device::open(args.event_path).unwrap();
     let mut last_value = None;
     loop {
         for ev in d.fetch_events().unwrap() {
@@ -21,7 +31,6 @@ fn main() {
                     if let Some(lvalue) = last_value {
                         if ev.value() != lvalue {
                             let calibrated_value: u32 = ((ev.value() as f32 + 127.0) / (127.0 * 2.0) * 32860.0 * 2.0).ceil() as u32;
-                            println!("Setting volume at: {}", calibrated_value);
                             update_volume(&mut handler, calibrated_value);
                             last_value = Some(ev.value());
                         }

@@ -2,7 +2,6 @@ extern crate pulsectl;
 
 use evdev::{Device, InputEventKind};
 
-use libpulse_binding::volume::ChannelVolumes;
 use libpulse_binding::volume::Volume;
 use pulsectl::controllers::DeviceControl;
 use pulsectl::controllers::SinkController;
@@ -30,7 +29,7 @@ fn main() {
                 InputEventKind::AbsAxis(_) => {
                     if let Some(lvalue) = last_value {
                         if ev.value() != lvalue {
-                            let calibrated_value: u32 = ((ev.value() as f32 + 127.0) / (127.0 * 2.0) * 32860.0 * 2.0).ceil() as u32;
+                            let calibrated_value: u32 = ((ev.value() as f32 + 127.0) / 254.0 * 65720.0).ceil() as u32;
                             update_volume(&mut handler, calibrated_value);
                             last_value = Some(ev.value());
                         }
@@ -47,7 +46,7 @@ fn main() {
 fn update_volume(handler: &mut SinkController, volume: u32) {
     let device = handler.get_default_device().unwrap();
     let channel_number = device.channel_map.len();
-    let mut channel_volumes = ChannelVolumes::default();
+    let mut channel_volumes = device.volume;
     channel_volumes.set(channel_number, Volume(volume));
     handler.set_device_volume_by_index(device.index, &channel_volumes);
 }
